@@ -34,6 +34,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #include <libdwfl.h>
 
@@ -79,6 +80,72 @@ void dumpMmaps(ostream& out, const vector<MmapEvent>& mmaps)
     }
 }
 
+void filterMmaps(vector<MmapEvent> &mmaps)
+{
+    mmaps.erase(remove_if(mmaps.begin(), mmaps.end(), [](const MmapEvent& mmap) {
+        return mmap.file.empty() || mmap.file[0] == '[' || mmap.file == "//anon" || mmap.file == "/etc/ld.so.cache";
+    }), mmaps.end());
+}
+
+static const constexpr Dwfl_Callbacks dwfl_callbacks = {
+    &dwfl_build_id_find_elf,
+    &dwfl_build_id_find_debuginfo,
+    &dwfl_offline_section_address,
+    nullptr,
+};
+
+struct DwflHandle
+{
+    Dwfl* handle = nullptr;
+
+    DwflHandle()
+        : handle(dwfl_begin(&dwfl_callbacks))
+    {}
+
+    ~DwflHandle()
+    {
+        dwfl_end(handle);
+    }
+
+    void report(const vector<MmapEvent>& mmaps)
+    {
+        dwfl_report_begin(handle);
+
+        for (const auto& mmap : mmaps)
+        {
+            if (mmap.pgoff > 0) {
+                cerr << "skipping (pgoff != 0): " << mmap.file << "\t" << hex << mmap.pgoff << endl;
+                continue;
+            }
+
+            auto *module = dwfl_report_elf(handle, mmap.file.c_str(), mmap.file.c_str(),
+                                           -1, mmap.start, false);
+            if (!module) {
+                cerr << "failed to report " << mmap.file.c_str() << " at " << hex << mmap.start << "@" << hex << mmap.pgoff << ", error:"
+                     << dwfl_errmsg(dwfl_errno()) << endl;
+            } else {
+                Dwarf_Addr start, end, dwbias, symbias;
+                const char* mainfile = nullptr, *debugfile = nullptr;
+                dwfl_module_info(module, nullptr, &start, &end, &dwbias, &symbias, &mainfile, &debugfile);
+                cout << "reported module " << mmap.file.c_str() << "\n"
+                     << "\texpected: " << hex << mmap.start << "@" << hex << mmap.pgoff << " to " << (mmap.start + mmap.len) << " (" << mmap.len << ")\n"
+                     << "\tactual:   " << hex << start << "@" << hex << 0 << " to " << end << " (" << (end - start) << ")\n"
+                     << "\tdwbias:   " << hex << dwbias << ", symbias:" << hex << symbias << "\n"
+                     << "\tmainfile: " << (mainfile ? mainfile : "<no main file>") << "\n"
+                     << "\tdbgfile:  " << (debugfile ? debugfile : "<no debug file>") << "\n";
+                if (mmap.start != start) {
+                    cerr << "START ADDR MISMATCH! " << hex << mmap.start << " VS " << hex << start << endl;
+                }
+                if (mmap.len != (end - start)) {
+                    cerr << "LEN MISMATCH! " << hex << mmap.len << " VS " << hex << (end - start) << ", diff: " << dec << static_cast<ssize_t>((end - start) - mmap.len) << endl;
+                }
+            }
+        }
+
+        dwfl_report_end(handle, nullptr, nullptr);
+    }
+};
+
 int main(int argc, char** argv)
 {
     if (argc != 2) {
@@ -89,9 +156,18 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const auto mmaps = parseMmapEvents(argv[1]);
-
+    auto mmaps = parseMmapEvents(argv[1]);
     dumpMmaps(cout, mmaps);
+
+    cout << "\nfiltered:\n\n";
+
+    filterMmaps(mmaps);
+    dumpMmaps(cout, mmaps);
+
+    cout << "\nreporting filtered mmaps:\n\n";
+
+    DwflHandle dwfl;
+    dwfl.report(mmaps);
 
     return 0;
 }
