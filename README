@@ -13,3 +13,55 @@ Then feed this file into the reproducer:
     $ ./perf_mmaps_to_elfutils mmaps.txt
 
 You should notice some discrepandcies between actual mmap events and what libdwfl sees.
+
+Example:
+
+```
+0x5560be12d000 to 0x5560be132000, len =     0x5000, offset =                0   r--p    /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining
+0x5560be12e000 to 0x5560be12f000, len =     0x1000, offset =           0x1000   r-xp    /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining
+0x5560be12f000 to 0x5560be130000, len =     0x1000, offset =           0x2000   r--p    /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining
+0x5560be130000 to 0x5560be132000, len =     0x2000, offset =           0x2000   rw-p    /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining
+0x7fac5ede7000 to 0x7fac5ee13000, len =    0x2c000, offset =                0   r--p    /usr/lib/ld-2.28.so
+0x7fac5ede9000 to 0x7fac5ee08000, len =    0x1f000, offset =           0x2000   r-xp    /usr/lib/ld-2.28.so
+0x7fac5ee08000 to 0x7fac5ee10000, len =     0x8000, offset =          0x21000   r--p    /usr/lib/ld-2.28.so
+0x7fac5ee10000 to 0x7fac5ee12000, len =     0x2000, offset =          0x28000   rw-p    /usr/lib/ld-2.28.so
+0x7fac5ec0b000 to 0x7fac5ed9a000, len =   0x18f000, offset =                0   r--p    /usr/lib/libstdc++.so.6.0.25
+0x7fac5ec94000 to 0x7fac5ed8a000, len =    0xf6000, offset =          0x89000   ---p    /usr/lib/libstdc++.so.6.0.25
+0x7fac5ec94000 to 0x7fac5ed4c000, len =    0xb8000, offset =          0x89000   r-xp    /usr/lib/libstdc++.so.6.0.25
+0x7fac5ed4c000 to 0x7fac5ed89000, len =    0x3d000, offset =         0x141000   r--p    /usr/lib/libstdc++.so.6.0.25
+0x7fac5ed8a000 to 0x7fac5ed97000, len =     0xd000, offset =         0x17e000   rw-p    /usr/lib/libstdc++.so.6.0.25
+...
+
+reported module /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining
+        expected: 0x5560be12d000@0 to 0x5560be132000 (0x5000)
+        actual:   0x5560be12d000@0 to 0x5560be131178 (0x4178)
+        dwbias:   0xffffffffffffffff, symbias:0xffffffffffffffff
+        mainfile: /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining
+        dbgfile:  <no debug file>
+LEN MISMATCH! 5000 VS 4178, diff: -3720
+skipping (pgoff != 0): /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining        1000
+skipping (pgoff != 0): /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining        2000
+skipping (pgoff != 0): /home/milian/projects/kdab/rnd/hotspot/build/tests/test-clients/cpp-inlining/cpp-inlining        2000
+reported module /usr/lib/ld-2.28.so
+        expected: 0x7fac5ede7000@0 to 0x7fac5ee13000 (0x2c000)
+        actual:   0x7fac5ede7000@0 to 0x7fac5ee12118 (0x2b118)
+        dwbias:   0xffffffffffffffff, symbias:0xffffffffffffffff
+        mainfile: /usr/lib/ld-2.28.so
+        dbgfile:  <no debug file>
+LEN MISMATCH! 2c000 VS 2b118, diff: -3816
+skipping (pgoff != 0): /usr/lib/ld-2.28.so      2000
+skipping (pgoff != 0): /usr/lib/ld-2.28.so      21000
+skipping (pgoff != 0): /usr/lib/ld-2.28.so      28000
+reported module /usr/lib/libstdc++.so.6.0.25
+        expected: 0x7fac5ec0b000@0 to 0x7fac5ed9a000 (0x18f000)
+        actual:   0x7fac5ec0b000@0 to 0x7fac5ed99640 (0x18e640)
+        dwbias:   0xffffffffffffffff, symbias:0xffffffffffffffff
+        mainfile: /usr/lib/libstdc++.so.6.0.25
+        dbgfile:  <no debug file>
+LEN MISMATCH! 18f000 VS 18e640, diff: -2496
+skipping (pgoff != 0): /usr/lib/libstdc++.so.6.0.25     89000
+skipping (pgoff != 0): /usr/lib/libstdc++.so.6.0.25     89000
+skipping (pgoff != 0): /usr/lib/libstdc++.so.6.0.25     141000
+skipping (pgoff != 0): /usr/lib/libstdc++.so.6.0.25     17e000
+...
+```
