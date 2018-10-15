@@ -1,0 +1,15 @@
+This is a reproducer for issues with feeding libdwfl the perf mmap events, cf. https://github.com/KDAB/hotspot/issues/125
+
+To use it, first run perf on an application of your choice:
+
+    $ perf record --call-graph dwarf <...>
+
+Now create a text file with all the mmap events in the perf data file:
+
+    $ perf script -show-mmap-events | grep PERF_RECORD_MMAP2 > mmaps.txt
+
+Then feed this file into the reproducer:
+
+    $ ./perf_mmaps_to_elfutils mmaps.txt
+
+You should notice some discrepandcies between actual mmap events and what libdwfl sees.
