@@ -65,3 +65,36 @@ skipping (pgoff != 0): /usr/lib/libstdc++.so.6.0.25     141000
 skipping (pgoff != 0): /usr/lib/libstdc++.so.6.0.25     17e000
 ...
 ```
+
+Additional information:
+
+```
+$ eu-readelf -l /usr/lib/libstdc++.so.6.0.25
+Program Headers:
+  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align
+  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x088fa8 0x088fa8 R   0x1000
+  LOAD           0x089000 0x0000000000089000 0x0000000000089000 0x0b7ae1 0x0b7ae1 R E 0x1000
+  LOAD           0x141000 0x0000000000141000 0x0000000000141000 0x03cfe0 0x03cfe0 R   0x1000
+  LOAD           0x17e8e0 0x000000000017f8e0 0x000000000017f8e0 0x00b8b8 0x00ed60 RW  0x1000
+  DYNAMIC        0x1873a8 0x00000000001883a8 0x00000000001883a8 0x0001e0 0x0001e0 RW  0x8
+  NOTE           0x0002a8 0x00000000000002a8 0x00000000000002a8 0x000024 0x000024 R   0x4
+  NOTE           0x17dfc0 0x000000000017dfc0 0x000000000017dfc0 0x000020 0x000020 R   0x8
+  TLS            0x17e8e0 0x000000000017f8e0 0x000000000017f8e0 0x000000 0x000020 R   0x8
+  GNU_EH_FRAME   0x149558 0x0000000000149558 0x0000000000149558 0x007f04 0x007f04 R   0x4
+  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x10
+  GNU_RELRO      0x17e8e0 0x000000000017f8e0 0x000000000017f8e0 0x00b720 0x00b720 R   0x1
+
+ Section to Segment mapping:
+  Segment Sections...
+   00      [RO: .note.gnu.build-id .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_d .gnu.version_r .rela.dyn]
+   01      [RO: .init .text .fini]
+   02      [RO: .rodata .eh_frame_hdr .eh_frame .gcc_except_table .note.gnu.property]
+   03      [RELRO: .tbss .init_array .fini_array .data.rel.ro .dynamic .got] .got.plt .data .bss
+   04      [RELRO: .dynamic]
+   05      [RO: .note.gnu.build-id]
+   06      [RO: .note.gnu.property]
+   07      [RELRO: .tbss]
+   08      [RO: .eh_frame_hdr]
+   09     
+   10      [RELRO: .tbss .init_array .fini_array .data.rel.ro .dynamic .got]
+```
